@@ -1,0 +1,8 @@
+prefix=/home/jesse/final_ws/install
+
+Name: robotics_final
+Description: Description of robotics_final
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/jesse/final_ws/install/lib 
+Requires: 
