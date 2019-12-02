@@ -1,7 +1,6 @@
 # Singularities of UR3 robot arm in ROS
 
-This project was developed to simulate the UR3 robot arm moving through singularities. \
- I also made [a YouTube video detailing this project](https://www.youtube.com/watch?v=2Sx4uq1sdFE).
+This project was developed to simulate the UR3 robot arm moving through singularities.
 
 ## Installation
 
