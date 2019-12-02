@@ -19,6 +19,7 @@ class MoveGroupPythonInterface(object):
     moveit_commander.roscpp_initialize(sys.argv)
     rospy.init_node('move_group_python_interface',
                     anonymous=True)
+    # TODO - change above "node" that is spawned
 
     ## Instantiate a `RobotCommander`_ object. This object is the outer-level interface to
     ## the robot:
@@ -33,9 +34,9 @@ class MoveGroupPythonInterface(object):
     group_name = "manipulator"
     group = moveit_commander.MoveGroupCommander(group_name)
 
-    ## We create a `DisplayTrajectory`_ publisher which is used later to publish
+    ## We create a `DisplayTrajectory` publisher which is used later to publish
     ## trajectories for RViz to visualize:
-    # (Note that this is not used in the Gazebo demo)
+    ## (This is NOT used in the Gazebo demo)
     display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                    moveit_msgs.msg.DisplayTrajectory,
                                                    queue_size=20)
@@ -48,6 +49,7 @@ class MoveGroupPythonInterface(object):
   def go_to_joint_state(self):
     group = self.group
 
+    # Planning to a joint goal
     joint_goal = group.get_current_joint_values()
 
     # Near goal (elbow singularity)
@@ -90,35 +92,6 @@ class MoveGroupPythonInterface(object):
     return self.group.get_current_pose().pose
     #return geometry_msgs.msg.Pose() # BAD, and does NOT work
 
-  def go_to_pose_goal(self):
-    group = self.group
-
-    ## Planning to a Pose Goal
-    ## ^^^^^^^^^^^^^^^^^^^^^^^
-    ## We can plan a motion for this group to a desired pose for the
-    ## end-effector:
-    pose_goal = geometry_msgs.msg.Pose()
-    #pose_goal.orientation.w = 0.0164 # shouldn't chnange, I think
-    pose_goal.position.x = 0.545
-    pose_goal.position.y = 0.112
-    pose_goal.position.z = 0.175
-
-    # TODO - if this fails, simply don't change orientation from start to finish
-    pose_goal.orientation.x = -0.995
-    pose_goal.orientation.y = 3.637
-    pose_goal.orientation.z = -0.09
-    pose_goal.orientation.w = 0
-   
-    group.set_pose_target(pose_goal)
-
-    ## Now, we call the planner to compute the plan and execute it.
-    plan = group.go(wait=True)
-    # Calling `stop()` ensures that there is no residual movement
-    group.stop()
-    # It is always good to clear your targets after planning with poses.
-    # Note: there is no equivalent function for clear_joint_value_targets()
-    group.clear_pose_targets()
-
   def go_to_pose(self, pose_goal):
     group = self.group
 
@@ -151,9 +124,9 @@ class MoveGroupPythonInterface(object):
     return plan, fraction
 
   def execute_plan(self, plan):
-    # **Note:** The robot's current joint state must be within some tolerance of the
-    # first waypoint in the `RobotTrajectory`, else `execute()` will fail
     self.group.execute(plan, wait=True)
+
+
 
 def main():
   # Wrap in try s.t. errors are handled
@@ -201,6 +174,7 @@ def main():
 
     print "============ Elbow singularity demo complete!"
     print "Note: if the UR3 clipped into the ground, you must restart Gazebo"
+
   except rospy.ROSInterruptException:
     return
   except KeyboardInterrupt:

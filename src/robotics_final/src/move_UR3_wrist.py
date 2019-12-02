@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-## To use the Python MoveIt! interfaces, we will import the `moveit_commander`_ namespace.
-## This namespace provides us with a `MoveGroupCommander`_ class, a `PlanningSceneInterface`_ class,
-## and a `RobotCommander`_ class. (More on these below)
-##
-## We also import `rospy`_ and some messages that we will use:
-##
-
 import sys
 import copy
 import rospy
@@ -16,28 +9,6 @@ import geometry_msgs.msg
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
-
-def all_close(goal, actual, tolerance):
-  """
-  Convenience method for testing if a list of values are within a tolerance of their counterparts in another list
-  @param: goal       A list of floats, a Pose or a PoseStamped
-  @param: actual     A list of floats, a Pose or a PoseStamped
-  @param: tolerance  A float
-  @returns: bool
-  """
-  all_equal = True
-  if type(goal) is list:
-    for index in range(len(goal)):
-      if abs(actual[index] - goal[index]) > tolerance:
-        return False
-
-  elif type(goal) is geometry_msgs.msg.PoseStamped:
-    return all_close(goal.pose, actual.pose, tolerance)
-
-  elif type(goal) is geometry_msgs.msg.Pose:
-    return all_close(pose_to_list(goal), pose_to_list(actual), tolerance)
-
-  return True
 
 class MoveGroupPythonInterface(object):
   """MoveGroupPythonInterface"""
@@ -61,31 +32,16 @@ class MoveGroupPythonInterface(object):
     group_name = "manipulator"
     group = moveit_commander.MoveGroupCommander(group_name)
 
-    ## We create a `DisplayTrajectory`_ publisher which is used later to publish
+    ## We create a `DisplayTrajectory` publisher which is used later to publish
     ## trajectories for RViz to visualize:
+    ## (This is NOT used in the Gazebo demo)
     display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                    moveit_msgs.msg.DisplayTrajectory,
                                                    queue_size=20)
 
-    ## Getting Basic Information
-    ## ^^^^^^^^^^^^^^^^^^^^^^^^^
-    # We can get the name of the reference frame for this robot:
-    #planning_frame = group.get_planning_frame()
-    #print "============ Reference frame: %s" % planning_frame
-
-    # We can also print the name of the end-effector link for this group:
-    #eef_link = group.get_end_effector_link()
-    #print "============ End effector: %s" % eef_link
-
-    # We can get a list of all the groups in the robot:
-    #group_names = robot.get_group_names()
-    #print "============ Robot Groups:", robot.get_group_names()
-
-    # Sometimes for debugging it is useful to print the entire state of the
-    # robot:
-    print "============ Printing robot state"
-    print robot.get_current_state()
-    print ""
+    #print "============ Printing robot state"
+    #print robot.get_current_state()
+    #print ""
 
     # Misc variables
     self.box_name = ''
@@ -93,17 +49,14 @@ class MoveGroupPythonInterface(object):
     self.scene = scene
     self.group = group
     self.display_trajectory_publisher = display_trajectory_publisher
-    #self.planning_frame = planning_frame
-    #self.eef_link = eef_link
-    #self.group_names = group_names
-
+    
   def go_to_joint_state(self):
     group = self.group
 
-    ## Planning to a Joint Goal
+    # Planning to a joint goal
     joint_goal = group.get_current_joint_values()
     
-# Wrist singularity position
+    # Wrist singularity position
     joint_goal[0] = -1.5707
     joint_goal[1] = -1.3
     joint_goal[2] = -1.83
@@ -119,9 +72,6 @@ class MoveGroupPythonInterface(object):
 
     # Calling stop() ensures that there is no residual movement
     group.stop()
-
-    current_joints = self.group.get_current_joint_values()
-    return all_close(joint_goal, current_joints, 0.01)
 
   def go_to_pose_goal(self):
     group = self.group
@@ -139,15 +89,13 @@ class MoveGroupPythonInterface(object):
 
     ## Now, we call the planner to compute the plan and execute it.
     plan = group.go(wait=True)
+    
     # Calling `stop()` ensures that there is no residual movement
     group.stop()
+    
     # It is always good to clear your targets after planning with poses.
     # Note: there is no equivalent function for clear_joint_value_targets()
     group.clear_pose_targets()
-
-    current_pose = self.group.get_current_pose().pose
-    return all_close(pose_goal, current_pose, 0.01)
-
 
   def plan_cartesian_path(self, scale=1):
     group = self.group
@@ -158,7 +106,7 @@ class MoveGroupPythonInterface(object):
     #print wpose
 
     # Move across singularity
-    wpose.position.x += scale * 0.15  # First, move right (x)
+    wpose.position.x += scale * 0.15
     wpose.position.y -= scale * 0.15
     waypoints.append(copy.deepcopy(wpose))
 
@@ -170,26 +118,21 @@ class MoveGroupPythonInterface(object):
                                        0.005,        # eef_step
                                        0.0)         # jump_threshold
 
-    # Note: We are just planning, not asking move_group to actually move the robot yet:
+    # Note: We are planning, NOT moving yet!
     return plan, fraction
 
   def execute_plan(self, plan):
-    group = self.group
+    self.group.execute(plan, wait=True)
 
-    ## Executing a Plan
-    ## ^^^^^^^^^^^^^^^^
-    ## Use execute if you would like the robot to follow
-    ## the plan that has already been computed:
-    group.execute(plan, wait=True)
 
-    ## **Note:** The robot's current joint state must be within some tolerance of the
-    ## first waypoint in the `RobotTrajectory`_ or ``execute()`` will fail
 
 def main():
   try:
     print "============ Press `Enter` to set up the moveit_commander (press ctrl-d to exit) ..."
     raw_input()
     mgpi = MoveGroupPythonInterface()
+
+    print "========= Note: for all lines that start with =========, press `Enter` to move to next line"
 
     print "============ Press `Enter` to go to start state (joint goal) ..."
     raw_input()
@@ -207,6 +150,7 @@ def main():
 
     print "============ Wrist singularity demo complete!"
     print "Note: if the UR3 clipped into the ground, you must restart Gazebo"
+
   except rospy.ROSInterruptException:
     return
   except KeyboardInterrupt:

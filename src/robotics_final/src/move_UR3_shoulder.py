@@ -10,7 +10,6 @@ from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 
-
 class MoveGroupPythonInterface(object):
   """MoveGroupPythonInterface"""
   def __init__(self):
@@ -32,8 +31,9 @@ class MoveGroupPythonInterface(object):
     group_name = "manipulator"
     group = moveit_commander.MoveGroupCommander(group_name)
 
-    ## We create a `DisplayTrajectory`_ publisher which is used later to publish
+    ## We create a `DisplayTrajectory` publisher which is used later to publish
     ## trajectories for RViz to visualize:
+    ## (This is NOT used in the Gazebo demo)
     display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                    moveit_msgs.msg.DisplayTrajectory,
                                                    queue_size=20)
@@ -48,7 +48,7 @@ class MoveGroupPythonInterface(object):
   def go_to_joint_state(self):
     group = self.group
 
-    ## Planning to a Joint Goal
+    # Planning to a joint goal
     joint_goal = group.get_current_joint_values()
 
     # Shoulder singularity position
@@ -77,7 +77,7 @@ class MoveGroupPythonInterface(object):
     #print wpose
 
     # Move across singularity
-    wpose.position.x += scale * 0.15  # First, move right (x)
+    wpose.position.x += scale * 0.15
     wpose.position.y -= scale * 0.15
     waypoints.append(copy.deepcopy(wpose))
 
@@ -89,17 +89,21 @@ class MoveGroupPythonInterface(object):
                                        0.01,        # eef_step
                                        0.00)        # jump_threshold
 
-    # Note: We are just planning, not asking move_group to actually move the robot yet:
+    # Note: We are planning, NOT moving yet!
     return plan, fraction
 
   def execute_plan(self, plan):
     self.group.execute(plan, wait=True)
+
+
 
 def main():
   try:
     print "============ Press `Enter` to set up the moveit_commander (press ctrl-d to exit) ..."
     raw_input()
     mgpi = MoveGroupPythonInterface()
+    
+    print "========= Note: for all lines that start with =========, press `Enter` to move to next line"
 
     print "============ Press `Enter` to go to start state (joint goal) ..."
     raw_input()
@@ -117,6 +121,7 @@ def main():
 
     print "============ Shoulder singularity demo complete!"
     print "Note: if the UR3 clipped into the ground, you must restart Gazebo"
+
   except rospy.ROSInterruptException:
     return
   except KeyboardInterrupt:
